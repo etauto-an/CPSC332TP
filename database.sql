@@ -55,7 +55,7 @@ CREATE TABLE EnrollmentRecords (
     CWID CHAR(9),                                -- Student ID (foreign key)
     CourseNumber INT,                            -- Course number (foreign key)
     SectionNumber INT,                           -- Section number (foreign key)
-    Grade CHAR(2),                               -- Grade (e.g., A, B, C)
+    Grade CHAR(3),                               -- Grade (e.g., A, B, C)
     PRIMARY KEY (CWID, CourseNumber, SectionNumber),
     FOREIGN KEY (CWID) REFERENCES Student(CWID),
     FOREIGN KEY (CourseNumber, SectionNumber) REFERENCES Section(CourseNumber, SectionNumber)
