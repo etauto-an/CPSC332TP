@@ -56,6 +56,6 @@ include 'db_connect.php';
         <a href="student_course.php" class="portal-button">View Grades</a>
     </div>
     <!-- Back to Home -->
-    <a href="../index.html" class="back-button">Back to Home</a>
+    <a href="index.html" class="back-button">Back to Home</a>
 </body>
 </html>

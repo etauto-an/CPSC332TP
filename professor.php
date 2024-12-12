@@ -48,7 +48,7 @@ include 'db_connect.php';
             background-color: #004494;
         }
     </style>
-</head>
+</head> 
 <body>
     <h1>Professor Portal</h1>
     <div class="button-container">
@@ -57,6 +57,6 @@ include 'db_connect.php';
         <a href="grade_distribution.php" class="portal-button">View Grade Distribution</a>
     </div>
     <!-- Back to Home -->
-    <a href="../index.html" class="back-button">Back to Home</a>
+    <a href="index.html" class="back-button">Back to Home</a>
 </body>
 </html>
