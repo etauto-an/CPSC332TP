@@ -1,52 +1,42 @@
 <?php
-// Include the database connection file
-include 'db_connect.php';
+// Include database connection
+include_once 'db_connect.php';
 
-// Check if the form has been submitted
+// Initialize variables
+$records = [];
+$gradeDistribution = [];
+$error = "";
+
+// Fetch all enrollment records, sorted by CourseNumber and SectionNumber
+try {
+    $queryAll = "SELECT * FROM EnrollmentRecords ORDER BY CourseNumber ASC, SectionNumber ASC";
+    $stmt = $pdo->query($queryAll);
+    $records = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error = "Error fetching enrollment records: " . $e->getMessage();
+}
+
+// Handle form submission for filtering and generating grade distribution
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get the course number and section number from the form
-    $course_number = $_POST['course_number'];
-    $section_number = $_POST['section_number'];
+    $courseNumber = $_POST['courseNumber'];
+    $sectionNumber = $_POST['sectionNumber'];
 
-    // Validate input
-    if (!empty($course_number) && !empty($section_number)) {
-        // Prepare the SQL query to fetch grade distribution
-        $query = "SELECT Grade, COUNT(*) AS Count
-                  FROM Enrollment
-                  WHERE CourseID = ? AND SectionNumber = ?
-                  GROUP BY Grade
-                  ORDER BY Grade ASC";
-        $stmt = $link->prepare($query);
-        $stmt->bind_param("ss", $course_number, $section_number);
-
-        // Execute the query
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        // Check if results exist
-        if ($result->num_rows > 0) {
-            echo "<h2>Grade Distribution</h2>";
-            echo "<table border='1' cellpadding='5' cellspacing='0'>";
-            echo "<tr>
-                    <th>Grade</th>
-                    <th>Count</th>
-                  </tr>";
-            // Display the results in a table
-            while ($row = $result->fetch_assoc()) {
-                echo "<tr>
-                        <td>{$row['Grade']}</td>
-                        <td>{$row['Count']}</td>
-                      </tr>";
-            }
-            echo "</table>";
-        } else {
-            echo "<p>No grades found for the given course and section.</p>";
+    // Validate the input fields
+    if (!empty($courseNumber) && !empty($sectionNumber) && is_numeric($courseNumber) && is_numeric($sectionNumber)) {
+        try {
+            $queryGrades = "SELECT Grade, COUNT(*) AS StudentCount 
+                            FROM EnrollmentRecords 
+                            WHERE CourseNumber = ? AND SectionNumber = ?
+                            GROUP BY Grade 
+                            ORDER BY Grade ASC";
+            $stmt = $pdo->prepare($queryGrades);
+            $stmt->execute([$courseNumber, $sectionNumber]);
+            $gradeDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            $error = "Error fetching grade distribution: " . $e->getMessage();
         }
-
-        // Free the result set
-        $stmt->free_result();
     } else {
-        echo "<p>Please enter valid course and section numbers.</p>";
+        $error = "Please enter valid CourseNumber and SectionNumber.";
     }
 }
 ?>
@@ -63,6 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             color: #333;
             padding: 20px;
         }
+        h1, h2 {
+            color: #0056b3;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -77,18 +70,103 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: #0056b3;
             color: #fff;
         }
+        table tr:hover {
+            background-color: #f1f1f1;
+        }
+        .form-container {
+            margin-bottom: 20px;
+        }
+        .error {
+            color: red;
+            margin-bottom: 20px;
+        }
+        .back-button-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-start;
+        }
+        .back-button {
+            padding: 10px 15px;
+            background-color: #0056b3;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .back-button:hover {
+            background-color: #004494;
+        }
+        button {
+            background-color: #f4f4f9;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
     <h1>Grade Distribution</h1>
-    <form method="POST">
-        <label for="course_number">Course Number:</label>
-        <input type="text" id="course_number" name="course_number" required>
-        <br><br>
-        <label for="section_number">Section Number:</label>
-        <input type="text" id="section_number" name="section_number" required>
-        <br><br>
-        <button type="submit">Submit</button>
-    </form>
+
+    <!-- Form to filter records by CourseNumber and SectionNumber -->
+    <div class="form-container">
+        <form method="POST">
+            <label for="courseNumber">Course Number:</label>
+            <input type="text" id="courseNumber" name="courseNumber" placeholder="Enter Course Number">
+            <label for="sectionNumber">Section Number:</label>
+            <input type="text" id="sectionNumber" name="sectionNumber" placeholder="Enter Section Number">
+            <button type="submit">Filter</button>
+        </form>
+    </div>
+
+    <!-- Error message -->
+    <?php if (!empty($error)): ?>
+        <p class="error"><?= $error ?></p>
+    <?php endif; ?>
+
+    <!-- Grade Distribution for the selected CourseNumber and SectionNumber -->
+    <?php if (!empty($gradeDistribution)): ?>
+        <h2>Grade Distribution for CourseNumber: <?= htmlspecialchars($courseNumber) ?>, SectionNumber: <?= htmlspecialchars($sectionNumber) ?></h2>
+        <table>
+            <tr>
+                <th>Grade</th>
+                <th>Student Count</th>
+            </tr>
+            <?php foreach ($gradeDistribution as $row): ?>
+                <tr>
+                    <td><?= htmlspecialchars($row['Grade']) ?></td>
+                    <td><?= htmlspecialchars($row['StudentCount']) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php endif; ?>
+
+    <!-- All records, sorted by CourseNumber and SectionNumber -->
+    <h2>All Enrollment Records (Sorted by Course and Section Numbers)</h2>
+    <table>
+        <tr>
+            <th>CWID</th>
+            <th>CourseNumber</th>
+            <th>SectionNumber</th>
+            <th>Grade</th>
+        </tr>
+        <?php foreach ($records as $record): ?>
+            <tr>
+                <td><?= htmlspecialchars($record['CWID']) ?></td>
+                <td><?= htmlspecialchars($record['CourseNumber']) ?></td>
+                <td><?= htmlspecialchars($record['SectionNumber']) ?></td>
+                <td><?= htmlspecialchars($record['Grade']) ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+
+    <!-- Back Button -->
+    <div class="back-button-container">
+        <a href="professor.php" class="back-button">Back to Portal</a>
+    </div>
 </body>
 </html>
