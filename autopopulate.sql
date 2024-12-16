@@ -77,6 +77,12 @@
     (104, 1, 'Tuesday'),
     (104, 1, 'Thursday');
 
+    (101, 2, 'Tuesday'),
+    (101, 2, 'Thursday');
+    (102, 2, 'Monday'),
+    (102, 2, 'Wednesday');
+
+
     -- Populate the ProfessorDegrees table
     INSERT INTO ProfessorDegrees (ProfSSN, Degree)
     VALUES
