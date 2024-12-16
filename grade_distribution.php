@@ -95,18 +95,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         .back-button:hover {
             background-color: #004494;
         }
-        button {
-            background-color: #f4f4f9;
-            color: #333;
-            border: 1px solid #ccc;
-            padding: 2px 8px;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 5px;
-        }
-        button:hover {
-            background-color: #e0e0e0;
-        }
     </style>
 </head>
 <body>

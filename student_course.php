@@ -1,50 +1,61 @@
 <?php
-// Include the database connection file
-include 'db_connect.php';
+// Include database connection
+include_once 'db_connect.php';
 
-// Check if the form has been submitted
+// Initialize variables to hold courses and error messages
+$courses = [];
+$error = "";
+$filterCourses = [];
+
+// Fetch all student course records
+try {
+    $queryAll = "SELECT 
+                    er.CWID,
+                    c.CourseNumber,
+                    c.Title AS CourseTitle,
+                    er.Grade
+                 FROM 
+                    EnrollmentRecords er
+                 JOIN Course c ON er.CourseNumber = c.CourseNumber
+                 ORDER BY 
+                    er.CWID, c.CourseNumber";
+    $stmt = $pdo->query($queryAll);
+    $courses = $stmt->fetchAll(PDO::FETCH_ASSOC); // Store all student course records
+} catch (PDOException $e) {
+    // Catch any errors fetching all records
+    $error = "Error fetching all student courses: " . $e->getMessage();
+}
+
+// Handle form submission for filtering courses by CWID
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get the student ID from the form
-    $student_id = $_POST['student_id'];
+    $cwid = $_POST['cwid']; // Get CWID input from form
 
-    // Validate input
-    if (!empty($student_id)) {
-        // Prepare the SQL query to fetch courses and grades
-        $query = "SELECT Courses.CourseTitle, Enrollment.Grade
-                  FROM Enrollment
-                  JOIN Courses ON Enrollment.CourseID = Courses.CourseID
-                  WHERE Enrollment.StudentID = ?";
-        $stmt = $link->prepare($query);
-        $stmt->bind_param("s", $student_id);
-
-        // Execute the query
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        // Check if results exist
-        if ($result->num_rows > 0) {
-            echo "<h2>Student Courses and Grades</h2>";
-            echo "<table border='1' cellpadding='5' cellspacing='0'>";
-            echo "<tr>
-                    <th>Course Title</th>
-                    <th>Grade</th>
-                  </tr>";
-            // Display the results in a table
-            while ($row = $result->fetch_assoc()) {
-                echo "<tr>
-                        <td>{$row['CourseTitle']}</td>
-                        <td>{$row['Grade']}</td>
-                      </tr>";
-            }
-            echo "</table>";
-        } else {
-            echo "<p>No courses or grades found for the given student ID.</p>";
+    // Validate the input CWID (alphanumeric format)
+    if (!empty($cwid)) {
+        try {
+            // Query to filter courses by CWID
+            $queryFiltered = "SELECT 
+                                er.CWID,
+                                c.CourseNumber,
+                                c.Title AS CourseTitle,
+                                er.Grade
+                              FROM 
+                                EnrollmentRecords er
+                              JOIN Course c ON er.CourseNumber = c.CourseNumber
+                              WHERE 
+                                er.CWID = ?
+                              ORDER BY 
+                                c.CourseNumber";
+            $stmt = $pdo->prepare($queryFiltered);
+            $stmt->execute([$cwid]); // Execute the query with the provided CWID
+            $filterCourses = $stmt->fetchAll(PDO::FETCH_ASSOC); // Store filtered results
+        } catch (PDOException $e) {
+            // Catch any errors fetching filtered records
+            $error = "Error fetching courses for CWID: " . $e->getMessage();
         }
-
-        // Free the result set
-        $stmt->close();
     } else {
-        echo "<p>Please enter a valid Student ID.</p>";
+        // If CWID is invalid, display an error message
+        $error = "Please enter a valid CWID.";
     }
 }
 ?>
@@ -53,13 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Courses and Grades</title>
+    <title>Student Courses</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f9;
             color: #333;
             padding: 20px;
+        }
+        h1, h2 {
+            color: #0056b3;
         }
         table {
             width: 100%;
@@ -75,14 +89,88 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: #0056b3;
             color: #fff;
         }
+        table tr:hover {
+            background-color: #f1f1f1;
+        }
+        .form-container {
+            margin-bottom: 20px;
+        }
+        .error {
+            color: red;
+            margin-bottom: 20px;
+        }
+        .back-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #0056b3;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .back-button:hover {
+            background-color: #004494;
+        }
     </style>
 </head>
 <body>
-    <h1>Student Courses and Grades</h1>
-    <form method="POST">
-        <label for="student_id">Enter Student ID:</label>
-        <input type="text" id="student_id" name="student_id" required>
-        <button type="submit">Submit</button>
-    </form>
+    <h1>Student Courses</h1>
+
+    <!-- Form to filter courses by CWID -->
+    <div class="form-container">
+        <form method="POST">
+            <label for="cwid">Enter CWID:</label>
+            <input type="text" id="cwid" name="cwid" placeholder="Enter CWID">
+            <button type="submit">Filter</button>
+        </form>
+    </div>
+
+    <!-- Display error message if there's any -->
+    <?php if (!empty($error)): ?>
+        <p class="error"><?= $error ?></p>
+    <?php endif; ?>
+
+    <!-- Display filtered courses if available -->
+    <?php if (!empty($filterCourses)): ?>
+        <h2>Filtered Courses for CWID: <?= htmlspecialchars($cwid) ?></h2>
+        <table>
+            <tr>
+                <th>CWID</th>
+                <th>Course Number</th>
+                <th>Course Title</th>
+                <th>Grade</th>
+            </tr>
+            <?php foreach ($filterCourses as $course): ?>
+                <tr>
+                    <td><?= htmlspecialchars($course['CWID']) ?></td>
+                    <td><?= htmlspecialchars($course['CourseNumber']) ?></td>
+                    <td><?= htmlspecialchars($course['CourseTitle']) ?></td>
+                    <td><?= htmlspecialchars($course['Grade']) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+    <?php endif; ?>
+
+    <!-- Display all student courses -->
+    <h2>All Student Courses</h2>
+    <table>
+        <tr>
+            <th>CWID</th>
+            <th>Course Number</th>
+            <th>Course Title</th>
+            <th>Grade</th>
+        </tr>
+        <?php foreach ($courses as $course): ?>
+            <tr>
+                <td><?= htmlspecialchars($course['CWID']) ?></td>
+                <td><?= htmlspecialchars($course['CourseNumber']) ?></td>
+                <td><?= htmlspecialchars($course['CourseTitle']) ?></td>
+                <td><?= htmlspecialchars($course['Grade']) ?></td>
+            </tr>
+        <?php endforeach; ?>
+    </table>
+
+    <!-- Back Button -->
+    <a href="student.php" class="back-button">Back to Portal</a>
 </body>
 </html>

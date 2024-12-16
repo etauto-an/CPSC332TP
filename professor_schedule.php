@@ -9,16 +9,26 @@ $filterSchedules = [];
 
 // Fetch all professor schedules
 try {
-    $queryAll = "SELECT Section.ProfSSN AS ProfessorSSN, 
-                        Course.Title AS CourseTitle, 
-                        Section.Classroom, 
-                        SectionMeetingDays.Day AS MeetingDays, 
-                        Section.StartTime, 
-                        Section.EndTime
-                 FROM Section
-                 JOIN Course ON Section.CourseNumber = Course.CourseNumber
-                 JOIN SectionMeetingDays ON Section.CourseNumber = SectionMeetingDays.CourseNumber 
-                                          AND Section.SectionNumber = SectionMeetingDays.SectionNumber";
+   $queryAll = "SELECT Section.ProfSSN AS ProfessorSSN, 
+                    Course.Title AS CourseTitle, 
+                    Section.Classroom, 
+                    GROUP_CONCAT(DISTINCT SectionMeetingDays.Day 
+                                 ORDER BY CASE SectionMeetingDays.Day
+                                     WHEN 'Monday' THEN 1
+                                     WHEN 'Tuesday' THEN 2
+                                     WHEN 'Wednesday' THEN 3
+                                     WHEN 'Thursday' THEN 4
+                                     WHEN 'Friday' THEN 5
+                                     WHEN 'Saturday' THEN 6
+                                     WHEN 'Sunday' THEN 7
+                                 END SEPARATOR ', ') AS MeetingDays, 
+                    Section.StartTime, 
+                    Section.EndTime
+             FROM Section
+             JOIN Course ON Section.CourseNumber = Course.CourseNumber
+             LEFT JOIN SectionMeetingDays ON Section.CourseNumber = SectionMeetingDays.CourseNumber 
+                                           AND Section.SectionNumber = SectionMeetingDays.SectionNumber
+             GROUP BY Section.ProfSSN, Course.Title, Section.Classroom, Section.StartTime, Section.EndTime";
     $stmt = $pdo->query($queryAll);
     $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC); // Store all schedules
 } catch (PDOException $e) {
@@ -34,17 +44,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!empty($profSSN) && preg_match('/^\d{9}$/', $profSSN)) {
         try {
             // Query to filter schedules by the professor's SSN
-            $queryFiltered = "SELECT Section.ProfSSN AS ProfessorSSN, 
-                                     Course.Title AS CourseTitle, 
-                                     Section.Classroom, 
-                                     SectionMeetingDays.Day AS MeetingDays, 
-                                     Section.StartTime, 
-                                     Section.EndTime
-                              FROM Section
-                              JOIN Course ON Section.CourseNumber = Course.CourseNumber
-                              JOIN SectionMeetingDays ON Section.CourseNumber = SectionMeetingDays.CourseNumber 
-                                                       AND Section.SectionNumber = SectionMeetingDays.SectionNumber
-                              WHERE Section.ProfSSN = ?";
+    $queryFiltered = "SELECT Section.ProfSSN AS ProfessorSSN, 
+                             Course.Title AS CourseTitle, 
+                             Section.Classroom, 
+                             GROUP_CONCAT(DISTINCT SectionMeetingDays.Day 
+                                          ORDER BY CASE SectionMeetingDays.Day
+                                              WHEN 'Monday' THEN 1
+                                              WHEN 'Tuesday' THEN 2
+                                              WHEN 'Wednesday' THEN 3
+                                              WHEN 'Thursday' THEN 4
+                                              WHEN 'Friday' THEN 5
+                                              WHEN 'Saturday' THEN 6
+                                              WHEN 'Sunday' THEN 7
+                                          END SEPARATOR ', ') AS MeetingDays, 
+                             Section.StartTime, 
+                             Section.EndTime
+                      FROM Section
+                      JOIN Course ON Section.CourseNumber = Course.CourseNumber
+                      LEFT JOIN SectionMeetingDays ON Section.CourseNumber = SectionMeetingDays.CourseNumber 
+                                                    AND Section.SectionNumber = SectionMeetingDays.SectionNumber
+                      WHERE Section.ProfSSN = ?
+                      GROUP BY Section.ProfSSN, Course.Title, Section.Classroom, Section.StartTime, Section.EndTime";
+
             $stmt = $pdo->prepare($queryFiltered);
             $stmt->execute([$profSSN]); // Execute the query with the provided SSN
             $filterSchedules = $stmt->fetchAll(PDO::FETCH_ASSOC); // Store filtered schedules
