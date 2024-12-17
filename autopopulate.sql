@@ -75,10 +75,9 @@
     (103, 1, 'Monday'),
     (103, 1, 'Wednesday'),
     (104, 1, 'Tuesday'),
-    (104, 1, 'Thursday');
-
+    (104, 1, 'Thursday'),
     (101, 2, 'Tuesday'),
-    (101, 2, 'Thursday');
+    (101, 2, 'Thursday'),
     (102, 2, 'Monday'),
     (102, 2, 'Wednesday');
 
