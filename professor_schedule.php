@@ -65,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                     AND Section.SectionNumber = SectionMeetingDays.SectionNumber
                       WHERE Section.ProfSSN = ?
                       GROUP BY Section.ProfSSN, Course.Title, Section.Classroom, Section.StartTime, Section.EndTime";
-
             $stmt = $pdo->prepare($queryFiltered);
             $stmt->execute([$profSSN]); // Execute the query with the provided SSN
             $filterSchedules = $stmt->fetchAll(PDO::FETCH_ASSOC); // Store filtered schedules
